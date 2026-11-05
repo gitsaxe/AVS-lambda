@@ -36,7 +36,9 @@ jobs:
           sam deploy \
             --stack-name avs-fraud-panel \
             --capabilities CAPABILITY_IAM \
-            --resolve-s3 \
+            --s3-bucket simplicity-lambda-storage-121446621497 \
+            --s3-prefix avs-fraud-panel \
+            --region us-east-2 \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
             --parameter-overrides "${OVERRIDES[@]}"
