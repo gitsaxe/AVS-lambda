@@ -21,14 +21,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
       - run: sam build
-      - run: >
-          sam deploy
-          --stack-name avs-fraud-panel
-          --capabilities CAPABILITY_IAM
-          --resolve-s3
-          --no-confirm-changeset
-          --no-fail-on-empty-changeset
-          --parameter-overrides
-          ClientId=${{ secrets.BC_CLIENT_ID }}
-          ClientSecret=${{ secrets.BC_CLIENT_SECRET }}
-          AppUrl=${{ secrets.APP_URL }}
+      - name: sam deploy
+        env:
+          CLIENT_ID: ${{ secrets.BC_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.BC_CLIENT_SECRET }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          if [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ]; then
+            echo "::error::Set repo secrets BC_CLIENT_ID and BC_CLIENT_SECRET before deploying."
+            exit 1
+          fi
+          OVERRIDES=(ClientId="$CLIENT_ID" ClientSecret="$CLIENT_SECRET")
+          if [ -n "$APP_URL" ]; then OVERRIDES+=(AppUrl="$APP_URL"); fi
+          sam deploy \
+            --stack-name avs-fraud-panel \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides "${OVERRIDES[@]}"
