@@ -9,36 +9,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - uses: aws-actions/setup-sam@v2
-        with:
-          use-installer: true
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - run: sam build
-      - name: sam deploy
+      - name: deploy
         env:
           CLIENT_ID: ${{ secrets.BC_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.BC_CLIENT_SECRET }}
           APP_URL: ${{ secrets.APP_URL }}
+          FN: avs-fraud-panel
+          REGION: ${{ secrets.AWS_REGION }}
         run: |
           if [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ]; then
             echo "::error::Set repo secrets BC_CLIENT_ID and BC_CLIENT_SECRET before deploying."
             exit 1
           fi
-          OVERRIDES=(ClientId="$CLIENT_ID" ClientSecret="$CLIENT_SECRET")
-          if [ -n "$APP_URL" ]; then OVERRIDES+=(AppUrl="$APP_URL"); fi
-          sam deploy \
-            --stack-name avs-fraud-panel \
-            --capabilities CAPABILITY_IAM \
-            --s3-bucket simplicity-lambda-storage-121446621497 \
-            --s3-prefix avs-fraud-panel \
-            --region us-east-2 \
-            --no-confirm-changeset \
-            --no-fail-on-empty-changeset \
-            --parameter-overrides "${OVERRIDES[@]}"
+          zip -qr function.zip src
+          if ! aws lambda get-function --function-name "$FN" --region "$REGION" >/dev/null 2>&1; then
+            echo "::error::Lambda function '$FN' does not exist yet. Create it once (see SETUP_AWS.md), then re-run."
+            exit 1
+          fi
+          aws lambda update-function-code --function-name "$FN" --region "$REGION" --zip-file fileb://function.zip
+          aws lambda wait function-updated --function-name "$FN" --region "$REGION"
+          ENV="Variables={CLIENT_ID=$CLIENT_ID,CLIENT_SECRET=$CLIENT_SECRET,APP_URL=$APP_URL,SSM_PREFIX=/bc-fraud-panel/tokens/}"
+          aws lambda update-function-configuration --function-name "$FN" --region "$REGION" --environment "$ENV"
