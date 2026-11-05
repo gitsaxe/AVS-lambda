@@ -110,7 +110,7 @@ function chip(cls) {
 }
 
 function shell(inner) {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" href="/favicon.png">
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>:root{color-scheme:light dark}body{font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:16px;color:#1a1a1a;background:#fff}
 @media(prefers-color-scheme:dark){body{color:#e8e8e8;background:#1b1b1f}.card{background:#26262c!important;border-color:#3a3a42!important}.row{border-color:#33333a!important}}
 .card{border:1px solid #e3e3e8;border-radius:12px;padding:14px 16px;margin:0 0 12px}
