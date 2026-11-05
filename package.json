@@ -1,0 +1,10 @@
+{
+  "name": "arculus-order-fraud-panel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BigCommerce App Extension that shows AVS/CVV and a fraud verdict on each order.",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {}
+}
