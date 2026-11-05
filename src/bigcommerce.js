@@ -28,7 +28,7 @@ async function exchangeToken(code, scope, context) {
 }
 
 async function registerExtension(hash, token) {
-  const url = APP_URL + '/panel?orderId=${id}';
+  const url = '/orders/${id}/fraud-check';
   const input = {
     context: 'PANEL',
     model: 'ORDERS',

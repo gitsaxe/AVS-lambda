@@ -42,7 +42,14 @@ async function handleAuth(q) {
 
 async function handleLoad(q) {
   if (q.signed_payload_jwt) {
-    try { verifyJwt(q.signed_payload_jwt, process.env.CLIENT_SECRET); } catch (e) { /* noop */ }
+    let payload;
+    try {
+      payload = verifyJwt(q.signed_payload_jwt, process.env.CLIENT_SECRET);
+    } catch (e) {
+      return resp(401, renderMessage('Unauthorized', 'Invalid signature.'), FRAME_HEADERS);
+    }
+    const match = /^\/orders\/([1-9]\d*)\/fraud-check$/.exec(payload.url || '');
+    if (match) return handlePanel({ signed_payload_jwt: q.signed_payload_jwt, orderId: match[1] });
   }
   return resp(200, renderMessage('Arculus Order Fraud Panel', 'Open an order action menu and choose Fraud Check to see its AVS/CVV and risk.'), FRAME_HEADERS);
 }
