@@ -1,24 +1,24 @@
 # One-time AWS setup
 
-The GitHub Actions deploy user has narrow permissions (no S3 bucket creation, no IAM role creation), so SAM/CloudFormation can't run. This project deploys with a direct Lambda zip update instead. That needs the function to exist once, plus two permissions on the CI user.
+The GitHub workflow uses `appleboy/lambda-action`, which pushes the zip straight to an existing Lambda (no S3). The function must be created once first.
 
 ## 1. Create the Lambda function once (AWS Console, us-east-2)
 
 Lambda -> **Create function** -> Author from scratch
-- Function name: `avs-fraud-panel`
+- Function name: `AVS-lambda`
 - Runtime: **Node.js 20.x**
-- Architecture: x86_64
 - Execution role: **Create a new role with basic Lambda permissions**
 - Create function
 
-Then set a handler and a Function URL:
-- **Code** tab -> **Runtime settings** -> Edit -> Handler = `src/handler.handler` -> Save
-- **Configuration** -> **Function URL** -> Create function URL -> Auth type **NONE** -> Save -> copy the URL (this is `APP_URL`)
-- **Configuration** -> **General configuration** -> Edit -> Timeout 15s, Memory 256 MB -> Save
-
-Give the function's role SSM access (it stores the BigCommerce token):
-- **Configuration** -> **Permissions** -> click the role name (opens IAM)
-- Add permissions -> Create inline policy -> JSON:
+Then:
+- **Configuration -> General configuration -> Edit:** Timeout 15s, Memory 256 MB. Save.
+- **Configuration -> Function URL -> Create:** Auth type **NONE**. Save. Copy the URL (this is `APP_URL`).
+- **Configuration -> Environment variables -> Edit:** add
+  - `CLIENT_ID` = your BigCommerce app client id
+  - `CLIENT_SECRET` = your BigCommerce app client secret
+  - `APP_URL` = the Function URL above
+  - `SSM_PREFIX` = `/bc-fraud-panel/tokens/`
+- **Configuration -> Permissions -> (click the role) -> Add permissions -> Create inline policy -> JSON:**
 
 ```json
 {
@@ -30,26 +30,12 @@ Give the function's role SSM access (it stores the BigCommerce token):
 }
 ```
 
-## 2. Allow the CI user to update the function
+The default handler `index.handler` is correct (the repo's `index.js` re-exports the real handler), so no handler change is needed.
 
-Attach this policy to the IAM user whose keys are in `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`:
+## 2. Deploy
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    { "Effect": "Allow",
-      "Action": ["lambda:GetFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration"],
-      "Resource": "arn:aws:lambda:us-east-2:121446621497:function:avs-fraud-panel" }
-  ]
-}
-```
+Run the **deploy** workflow. It zips `index.js` + `src/` and pushes the code to `AVS-lambda`. The CI user only needs `lambda:UpdateFunctionCode` on that function.
 
-## 3. Deploy
+## 3. BigCommerce app
 
-- Set the `APP_URL` secret to the Function URL from step 1.
-- Run the **deploy** workflow. It zips `src/`, updates the function code, and sets the env vars from the BC secrets.
-
-## 4. BigCommerce app
-
-In the draft app (devtools.bigcommerce.com) set the callback URLs to `APP_URL/auth`, `APP_URL/load`, `APP_URL/uninstall`, then install the app on the store. Open any order -> action menu -> **Fraud Check**.
+In the draft app (devtools.bigcommerce.com) set callback URLs to `APP_URL/auth`, `APP_URL/load`, `APP_URL/uninstall`, then install the app on the store. Open any order -> action menu -> **Fraud Check**.

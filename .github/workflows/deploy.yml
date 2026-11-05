@@ -9,29 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Build zip
+        run: zip -qr lambda_function.zip index.js src
+      - name: Deploy to AWS Lambda
+        uses: appleboy/lambda-action@v0.2.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      - name: deploy
-        env:
-          CLIENT_ID: ${{ secrets.BC_CLIENT_ID }}
-          CLIENT_SECRET: ${{ secrets.BC_CLIENT_SECRET }}
-          APP_URL: ${{ secrets.APP_URL }}
-          FN: avs-fraud-panel
-          REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          if [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ]; then
-            echo "::error::Set repo secrets BC_CLIENT_ID and BC_CLIENT_SECRET before deploying."
-            exit 1
-          fi
-          zip -qr function.zip src
-          if ! aws lambda get-function --function-name "$FN" --region "$REGION" >/dev/null 2>&1; then
-            echo "::error::Lambda function '$FN' does not exist yet. Create it once (see SETUP_AWS.md), then re-run."
-            exit 1
-          fi
-          aws lambda update-function-code --function-name "$FN" --region "$REGION" --zip-file fileb://function.zip
-          aws lambda wait function-updated --function-name "$FN" --region "$REGION"
-          ENV="Variables={CLIENT_ID=$CLIENT_ID,CLIENT_SECRET=$CLIENT_SECRET,APP_URL=$APP_URL,SSM_PREFIX=/bc-fraud-panel/tokens/}"
-          aws lambda update-function-configuration --function-name "$FN" --region "$REGION" --environment "$ENV"
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: ${{ secrets.AWS_REGION }}
+          function_name: AVS-lambda
+          zip_file: lambda_function.zip
