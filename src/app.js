@@ -30,12 +30,14 @@ async function handleAuth(q) {
   const data = await exchangeToken(q.code, q.scope, q.context);
   const hash = String(data.context || q.context).replace('stores/', '');
   await putToken(hash, data.access_token);
+  var reg = 'The Fraud Check panel is registered. Open any order, click the action menu, and choose Fraud Check.';
   try {
     await registerExtension(hash, data.access_token);
   } catch (e) {
     console.error('registerExtension failed:', e.message);
+    reg = 'Installed, but the Fraud Check panel could NOT be registered: ' + e.message;
   }
-  return resp(200, renderMessage('Installed', 'Open any order, click the action menu, and choose Fraud Check.'));
+  return resp(200, renderMessage('Installed', reg));
 }
 
 async function handleLoad(q) {
