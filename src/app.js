@@ -3,6 +3,7 @@ const { exchangeToken, registerExtension, getOrder, getShipping, getTransactions
 const { verifyJwt } = require('./jwt');
 const { putToken, getToken } = require('./tokens');
 const { assess, renderPanel, renderMessage } = require('./risk');
+const ICON = require('./icon');
 
 const FRAME_HEADERS = {
   'Content-Security-Policy': "frame-ancestors https://*.bigcommerce.com https://*.mybigcommerce.com",
@@ -16,7 +17,12 @@ function resp(statusCode, body, extraHeaders) {
   };
 }
 
+function icon() {
+  return { statusCode: 200, headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' }, body: ICON, isBase64Encoded: true };
+}
+
 async function route({ method, path, query }) {
+  if (path === '/favicon.png' || path === '/favicon.ico' || path === '/icon.png') return icon();
   if (path === '/' || path === '') return resp(200, renderMessage('Arculus Order Fraud Panel', 'App is running.'));
   if (path === '/auth') return handleAuth(query);
   if (path === '/load') return handleLoad(query);
